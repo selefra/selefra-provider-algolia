@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"github.com/selefra/selefra-provider-algolia/algolia_client"
+	"os"
 
 	"github.com/selefra/selefra-provider-sdk/provider"
 	"github.com/selefra/selefra-provider-sdk/provider/schema"
@@ -29,6 +30,22 @@ func GetProvider() *provider.Provider {
 					algoliaConfig.Providers = append(algoliaConfig.Providers, algolia_client.Config{})
 				}
 
+				if algoliaConfig.Providers[0].APIKey == "" {
+					algoliaConfig.Providers[0].APIKey = os.Getenv("ALGOLIA_API_KEY")
+				}
+
+				if algoliaConfig.Providers[0].APIKey == "" {
+					return nil, schema.NewDiagnostics().AddErrorMsg("missing domain in configuration")
+				}
+
+				if algoliaConfig.Providers[0].AppID == "" {
+					algoliaConfig.Providers[0].AppID = os.Getenv("ALGOLIA_API_ID")
+				}
+
+				if algoliaConfig.Providers[0].AppID == "" {
+					return nil, schema.NewDiagnostics().AddErrorMsg("missing token in configuration")
+				}
+
 				clients, err := algolia_client.NewClients(algoliaConfig)
 
 				if err != nil {
@@ -53,15 +70,11 @@ func GetProvider() *provider.Provider {
 # api_key: "<YOUR_API_KEY>"`
 			},
 			Validation: func(ctx context.Context, config *viper.Viper) *schema.Diagnostics {
-				var client_config algolia_client.Configs
-				err := config.Unmarshal(&client_config.Providers)
+				var clientConfig algolia_client.Configs
+				err := config.Unmarshal(&clientConfig.Providers)
 
 				if err != nil {
 					return schema.NewDiagnostics().AddErrorMsg("analysis config err: %s", err.Error())
-				}
-
-				if len(client_config.Providers) == 0 {
-					return schema.NewDiagnostics().AddErrorMsg("analysis config err: no configuration")
 				}
 
 				return nil
